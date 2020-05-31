@@ -5,13 +5,15 @@
     // const loadingDiv = document.getElementById('loadingDiv');
 
     // register DOM events
+
     window.addEventListener('resize', draw, false);
-    window.addEventListener('scroll', handleScroll, false);
+    // window.addEventListener('scroll', canvasScroll);
 
     // canvas.addEventListener('click', canvasClick, false);
-    canvas.addEventListener('mousedown', canvasDragStart, false);
-    canvas.addEventListener('mousemove', canvasDragMove, false);
-    canvas.addEventListener('mouseup', canvasDragEnd, false);
+    canvas.addEventListener('mousedown', canvasMouseDown, false);
+    canvas.addEventListener('mousemove', canvasMouseMove, false);
+    canvas.addEventListener('mouseup', canvasMouseUp, false);
+    canvas.addEventListener('wheel', canvasWheel);
 
     // settings
     const maxIterations = 80;
@@ -69,51 +71,63 @@
     console.log(p);
     console.log(complexPlaneToCanvas(canvasToComplexPlane(p)));
 
-    // Event listeners
+    // Event handler
 
-    function canvasDragStart(event) {
+    /**
+     * Handles the `wheel` event of the canvas.
+     * @param {*} event 
+     */
+    function canvasWheel(event) {
+
+        // prevent scroll, I guess?
+        event.preventDefault();
+
+        // let p = { x: event.offsetX, y: offsetY };
+
+        // pointZoom(complexPlaneCenter(), event.deltaY * 0.01);
+    }
+
+    function canvasMouseDown(event) {
         pDragStart = {x: event.offsetX, y: event.offsetY};
     }
 
-    function canvasDragMove(event) {
+    function canvasMouseMove(event) {
         pDragMove = {x: event.offsetX, y: event.offsetY};
 
         // draw zoom rectangle
     }
 
-    function pointZoom(newCenterP) {
-            // get complex plane center
-            let newCenterC = canvasToComplexPlane(newCenterP);
+    function pointZoom(newCenterP, zoomFactor) {
+        // get complex plane center
+        let newCenterC = canvasToComplexPlane(newCenterP);
 
-            complexPlaneCenter();
+        // half lenghts of the axes of the current complex plane
+        let reAxisHalf = (complexPlane.end.re - complexPlane.start.re) / 2;
+        let imAxisHalf = (complexPlane.end.im - complexPlane.start.im) / 2
 
-            // half lenghts of the axes of the current complex plane
-            let reAxisHalf = (complexPlane.end.re - complexPlane.start.re) / 2;
-            let imAxisHalf = (complexPlane.end.im - complexPlane.start.im) / 2
+        // Is this the right way to do it? What does percentage zoom even mean?
+        let reAxisHalfNew = reAxisHalf * (1 - zoomFactor);
+        let imAxisHalfNew = imAxisHalf * (1 - zoomFactor);
 
-            // Is this the right way to do it? What does percentage zoom even mean?
-            let reAxisHalfNew = reAxisHalf * (1 - zoomFactor);
-            let imAxisHalfNew = imAxisHalf * (1 - zoomFactor);
+        let newStartC = {
+            re: newCenterC.re - reAxisHalfNew,
+            im: newCenterC.im - imAxisHalfNew
+        }
 
-            let newStartC = {
-                re: newCenterC.re - reAxisHalfNew,
-                im: newCenterC.im - imAxisHalfNew
-            }
+        let newEndC = {
+            re: newCenterC.re + reAxisHalfNew,
+            im: newCenterC.im + imAxisHalfNew
+        }
 
-            let newEndC = {
-                re: newCenterC.re + reAxisHalfNew,
-                im: newCenterC.im + imAxisHalfNew
-            }
+        complexPlane.start = newStartC;
+        complexPlane.end = newEndC;
 
-            complexPlane.start = newStartC;
-            complexPlane.end = newEndC;
+        logComplexPlane();
 
-            logComplexPlane();
-
-            draw();
+        draw();
     }
 
-    function canvasDragEnd(event) {
+    function canvasMouseUp(event) {
         let pDragEnd = {x: event.offsetX, y: event.offsetY};
 
         if (pDragStart.x === pDragEnd.x && pDragStart.y === pDragEnd.y) {
@@ -121,7 +135,7 @@
             let string = '(' + pDragEnd.x + ', ' + pDragEnd.y + ') <-> (' + round(c.re) + ', ' + round(c.im) + ')';
             console.log(string);
 
-            pointZoom(pDragEnd);
+            pointZoom(pDragEnd, zoomFactor);
 
             return;
         }
@@ -186,7 +200,7 @@
         // loadingDiv.style.display = "none";
     }
 
-    function handleScroll(event) {
+    function canvasScroll(event) {
         console.log('scroll');
     }
 
@@ -202,10 +216,17 @@
      * Draws the mandelbrot set in the local complex plane.
      */
     function drawMandelbrot() {
+
+        let imageData = ctx.createImageData(canvas.width, canvas.height);
+
         console.log('before draw:');
+
         logComplexPlane();
+
         for(let x = 0; x < canvas.width; x++) {
             for(let y = 0; y < canvas.height; y++) {
+
+                
 
                 let p = { x: x, y: y };
 
@@ -213,12 +234,23 @@
                 let c = canvasToComplexPlane(p);
 
                 // draw point black or white
-                let mb = mandelbrot(c);
-                ctx.fillStyle = mb ? 'black' : 'white';
-                ctx.lineWidth=1;
-                ctx.fillRect(x,y,1,1);
+                // ctx.fillStyle = mb ? 'black' : 'white';
+                // ctx.lineWidth=1;
+                // ctx.fillRect(x,y,1,1);
+
+                let rgb = mandelbrot(c) ? 0 : 255;
+
+                let pixelIndex = (y * canvas.width + x) * 4;
+
+                imageData.data[pixelIndex] = rgb;
+                imageData.data[pixelIndex+1] = rgb;
+                imageData.data[pixelIndex+2] = rgb;
+                imageData.data[pixelIndex+3] = 255;
+                
             }
         }
+
+        ctx.putImageData(imageData,0,0);
     }
 
     /**
