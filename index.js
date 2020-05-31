@@ -126,17 +126,17 @@
             return;
         }
 
-        let cStart = canvasToComplexPlane(pDragStart);
-        let cEnd = canvasToComplexPlane(pDragEnd);
+        // let cStart = canvasToComplexPlane(pDragStart);
+        // let cEnd = canvasToComplexPlane(pDragEnd);
 
-        complexPlane.start = cStart;
-        complexPlane.end = cEnd;
+        // complexPlane.start = cStart;
+        // complexPlane.end = cEnd;
 
-        pDragStart = null;
+        // pDragStart = null;
 
-        logComplexPlane();
+        // logComplexPlane();
         
-        draw();
+        // draw();
     }
     
     /**
@@ -176,9 +176,9 @@
         // draw mandelbrot set
         drawMandelbrot();
 
-        drawAxes();
+        // drawAxes();
 
-        drawNumberLines();
+        // drawNumberLines();
 
         // draw rect from (-2, 1) to (-1.9, 0,9)
 
