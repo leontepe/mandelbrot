@@ -5,11 +5,12 @@
     // const loadingDiv = document.getElementById('loadingDiv');
 
     // register DOM events
-    window.addEventListener('resize', resizeWindow, false);
+    window.addEventListener('resize', draw, false);
     window.addEventListener('scroll', handleScroll, false);
 
     // canvas.addEventListener('click', canvasClick, false);
     canvas.addEventListener('mousedown', canvasDragStart, false);
+    canvas.addEventListener('mousemove', canvasDragMove, false);
     canvas.addEventListener('mouseup', canvasDragEnd, false);
 
     // settings
@@ -26,10 +27,21 @@
         }
     }
 
+    const standardPlane = {
+        start: {
+            re: -2.1,
+            im: -2.1
+        },
+        end: {
+            re: 2.1,
+            im: 2.1
+        }
+    }
+
     /**
-     * Determines how much each click zooms in.
+     * Determines how much each click zooms in/out.
      */
-    const zoomFactor = 0.2;
+    const zoomFactor = 0.5;
     
     let zoomPoint = { x: 0, y: 0 };
 
@@ -63,6 +75,44 @@
         pDragStart = {x: event.offsetX, y: event.offsetY};
     }
 
+    function canvasDragMove(event) {
+        pDragMove = {x: event.offsetX, y: event.offsetY};
+
+        // draw zoom rectangle
+    }
+
+    function pointZoom(newCenterP) {
+            // get complex plane center
+            let newCenterC = canvasToComplexPlane(newCenterP);
+
+            complexPlaneCenter();
+
+            // half lenghts of the axes of the current complex plane
+            let reAxisHalf = (complexPlane.end.re - complexPlane.start.re) / 2;
+            let imAxisHalf = (complexPlane.end.im - complexPlane.start.im) / 2
+
+            // Is this the right way to do it? What does percentage zoom even mean?
+            let reAxisHalfNew = reAxisHalf * (1 - zoomFactor);
+            let imAxisHalfNew = imAxisHalf * (1 - zoomFactor);
+
+            let newStartC = {
+                re: newCenterC.re - reAxisHalfNew,
+                im: newCenterC.im - imAxisHalfNew
+            }
+
+            let newEndC = {
+                re: newCenterC.re + reAxisHalfNew,
+                im: newCenterC.im + imAxisHalfNew
+            }
+
+            complexPlane.start = newStartC;
+            complexPlane.end = newEndC;
+
+            logComplexPlane();
+
+            draw();
+    }
+
     function canvasDragEnd(event) {
         let pDragEnd = {x: event.offsetX, y: event.offsetY};
 
@@ -70,7 +120,9 @@
             const c = canvasToComplexPlane(pDragEnd);
             let string = '(' + pDragEnd.x + ', ' + pDragEnd.y + ') <-> (' + round(c.re) + ', ' + round(c.im) + ')';
             console.log(string);
-            // alert(string);
+
+            pointZoom(pDragEnd);
+
             return;
         }
 
@@ -84,9 +136,22 @@
 
         logComplexPlane();
         
-        resizeWindow();
+        draw();
+    }
+    
+    /**
+     * Returns the center of the complex plane (in complex coordinates).
+     */
+    function complexPlaneCenter() {
+        return {
+            re: complexPlane.start.re + ((complexPlane.end.re - complexPlane.start.re) / 2),
+            im: complexPlane.start.im + ((complexPlane.end.im - complexPlane.start.im) / 2)
+        }
     }
 
+    /**
+     * Prints the current complex plane coordintes to the console.
+     */
     function logComplexPlane() {
         let sr = round(complexPlane.start.re);
         let si = round(complexPlane.start.im);
@@ -95,7 +160,10 @@
         console.log('((' + sr + ', ' + si + '), (' + er + ', ' + ei + '))');
     }
 
-    function resizeWindow() {
+    /**
+     * The main draw function.
+     */
+    function draw() {
         // show loading div
         // loadingDiv.style.display = "block";
 
@@ -122,19 +190,6 @@
         console.log('scroll');
     }
 
-    function canvasClick(event) {
-        const x = event.pageX - (canvas.offsetLeft + canvas.clientLeft);
-        const y = event.pageY - (canvas.offsetLeft + canvas.clientLeft);
-
-        const p = { x: x, y: y };
-        const c = canvasToComplexPlane(p);
-
-        let string = '(' + p.x + ', ' + p.y + ') <-> (' + round(c.re) + ', ' + round(c.im) + ')';
-        console.log(string);
-        alert(string);
-
-    }
-
     // https://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-only-if-necessary
     function round(num) {
         let factor = Math.pow(10, decimalPlaces);
@@ -144,9 +199,11 @@
     // Local methods
 
     /**
-     * Draws the mandelbrot set in the local plot window.
+     * Draws the mandelbrot set in the local complex plane.
      */
     function drawMandelbrot() {
+        console.log('before draw:');
+        logComplexPlane();
         for(let x = 0; x < canvas.width; x++) {
             for(let y = 0; y < canvas.height; y++) {
 
@@ -239,20 +296,37 @@
      * @returns 
      */
     function canvasToComplexPlane(p) {
+
+        let reRange = complexPlane.end.re - complexPlane.start.re;
+        let imRange = complexPlane.end.im - complexPlane.start.im;
+
+        let re = complexPlane.start.re + (p.x / canvas.width) * reRange;
+        // end.im and - to flip the coordinate system
+        let im = complexPlane.end.im - (p.y / canvas.height) * imRange;
+
         return {
-            re: p.x / canvas.width * (complexPlane.end.re - complexPlane.start.re) + complexPlane.start.re,
-            im: -p.y / canvas.height * (complexPlane.end.im - complexPlane.start.im) - complexPlane.start.im
+            re: re,
+            im: im
         }
     }
 
     /**
      * Transforms complex plane coordinates to canvas coordinates
-     * @param {*} c Point (number) in complex plane
+     * @param {*} c Complex number in complex plane
+     * @returns Point in canvas
      */
     function complexPlaneToCanvas(c) {
+
+        let reRange = complexPlane.end.re - complexPlane.start.re;
+        let imRange = complexPlane.end.im - complexPlane.start.im;
+
+        // reverse engineer equation from canvasToComplexPlane
+        let x = (c.re - complexPlane.start.re) / reRange * canvas.width;
+        let y = (c.im - complexPlane.end.im) / -imRange * canvas.height;
+
         return {
-            x: (c.re - complexPlane.start.re) * canvas.width / (complexPlane.end.re - complexPlane.start.re),
-            y: - (c.im + complexPlane.start.im) * canvas.height / (complexPlane.end.im - complexPlane.start.im)
+            x: x,
+            y: y
         }
     }
 
@@ -300,5 +374,5 @@
     }
 
     // Make initial drawing call
-    resizeWindow();
+    draw();
 })();
