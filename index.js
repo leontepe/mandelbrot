@@ -171,7 +171,7 @@
         let si = round(complexPlane.start.im);
         let er = round(complexPlane.end.re);
         let ei = round(complexPlane.end.im);
-        console.log('((' + sr + ', ' + si + '), (' + er + ', ' + ei + '))');
+        console.log('Complex plane: ((' + sr + ', ' + si + '), (' + er + ', ' + ei + '))');
     }
 
     /**
@@ -217,11 +217,9 @@
      */
     function drawMandelbrot() {
 
+        let t0 = performance.now();
+
         let imageData = ctx.createImageData(canvas.width, canvas.height);
-
-        console.log('before draw:');
-
-        logComplexPlane();
 
         for(let x = 0; x < canvas.width; x++) {
             for(let y = 0; y < canvas.height; y++) {
@@ -251,6 +249,10 @@
         }
 
         ctx.putImageData(imageData,0,0);
+
+        let t1 = performance.now();
+
+        console.log('Draw time: ' + (t1-t0) + 'ms');
     }
 
     /**
